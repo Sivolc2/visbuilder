@@ -1,0 +1,32 @@
+visbuilder/
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── endpoints.py
+│   │   │   └── models.py
+│   │   ├── core/
+│   │   │   ├── __init__.py
+│   │   │   ├── config.py
+│   │   │   └── constants.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── data_service.py
+│   │   │   ├── preprocessing.py
+│   │   │   └── templating.py
+│   │   └── utils/
+│   │       ├── __init__.py
+│   │       └── helpers.py
+│   ├── requirements.txt
+│   └── Dockerfile
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── services/
+│   │   └── App.tsx
+│   ├── package.json
+│   └── Dockerfile
+├── docker-compose.yml
+└── .gitignore 
