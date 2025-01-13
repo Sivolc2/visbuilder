@@ -1,0 +1,94 @@
+.dynamic-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.view-header {
+  padding: 1rem 1.5rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.view-header h2 {
+  margin: 0;
+  color: #343a40;
+  font-size: 1.5rem;
+}
+
+.view-header p {
+  margin: 0.5rem 0 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.view-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.map-component {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin: 1rem;
+}
+
+.visualization-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.visualization-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  height: fit-content;
+}
+
+/* Loading state */
+.dynamic-view-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  font-size: 1.2rem;
+  color: #6c757d;
+}
+
+/* Error state */
+.dynamic-view-error {
+  padding: 2rem;
+  text-align: center;
+  color: #dc3545;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .visualization-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .map-component {
+    margin: 0.5rem;
+  }
+  
+  .view-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .view-header h2 {
+    font-size: 1.25rem;
+  }
+} 
