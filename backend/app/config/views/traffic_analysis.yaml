@@ -1,0 +1,77 @@
+name: "Traffic Analysis View"
+type: "split"
+description: "Real-time traffic analysis dashboard"
+
+data_sources:
+  - id: "traffic_api"
+    type: "api"
+    method: "GET"
+    refresh_interval: 60
+    cache_enabled: false
+
+  - id: "historical_data"
+    type: "s3"
+    refresh_interval: 3600
+    cache_enabled: true
+
+components:
+  - type: "map"
+    height: "60%"
+    layers:
+      - id: "traffic_flow"
+        type: "line"
+        data_source: "traffic_api"
+        properties:
+          getSourcePosition: "start_point"
+          getTargetPosition: "end_point"
+          getColor: [255, 0, 0]
+          getWidth: 3
+          opacity: 0.8
+          widthScale: 20
+          widthMinPixels: 2
+        
+      - id: "congestion_areas"
+        type: "heatmap"
+        data_source: "traffic_api"
+        properties:
+          getPosition: "start_point"
+          getWeight: "congestion_level"
+          intensity: 1
+          threshold: 0.1
+          radiusPixels: 60
+
+  - type: "grid"
+    height: "40%"
+    visualizations:
+      - id: "traffic_timeline"
+        type: "line"
+        title: "Traffic Volume Over Time"
+        data_source: "traffic_api"
+        properties:
+          type: "scatter"
+          mode: "lines+markers"
+          x_field: "timestamps"
+          y_field: "volume"
+        layout:
+          title: "Non-Realtime Traffic Volume"
+          height: 250
+          margin: {t: 30, r: 20, l: 40, b: 40}
+
+      - id: "congestion_distribution"
+        type: "pie"
+        title: "Congestion Distribution"
+        data_source: "historical_data"
+        properties:
+          type: "pie"
+          values: ["congestion_distribution.High", "congestion_distribution.Medium", "congestion_distribution.Low"]
+          labels: ["High", "Medium", "Low"]
+        layout:
+          title: "Historic Congestion Distribution"
+          height: 250
+          showlegend: true
+
+settings:
+  refresh_rate: 60  # seconds
+  default_zoom: 12
+  center: [-122.4194, 37.7749]  # San Francisco
+  time_window: 3600  # 1 hour of data 
