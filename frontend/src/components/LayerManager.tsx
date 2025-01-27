@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Switch, Collapse, Space, Typography } from 'antd';
+import { Card, Switch, Collapse, Space, Typography, Button } from 'antd';
 import { DataService, ColumnMetadata, FilterDefinition } from '../services/dataService';
 import DataFilter from './DataFilter';
 
@@ -27,6 +27,12 @@ const LayerManager: React.FC<LayerManagerProps> = ({
 }) => {
   const [columnMetadata, setColumnMetadata] = useState<Record<string, ColumnMetadata[]>>({});
   const dataService = DataService.getInstance();
+
+  const resetAllFilters = () => {
+    layers.forEach(layer => {
+      onLayerFiltersChange(layer.id, []);
+    });
+  };
 
   useEffect(() => {
     const fetchColumnMetadata = async () => {
@@ -87,6 +93,13 @@ const LayerManager: React.FC<LayerManagerProps> = ({
 
   return (
     <Card title="Layer Manager" style={{ width: 400, maxHeight: '80vh', overflowY: 'auto' }}>
+      <Button 
+        onClick={resetAllFilters}
+        style={{ marginBottom: '1rem', width: '100%' }}
+        type="primary"
+      >
+        Reset All Filters
+      </Button>
       <Collapse items={getCollapseItems()} />
     </Card>
   );

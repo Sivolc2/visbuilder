@@ -1,4 +1,4 @@
 export const config = {
-    API_BASE_URL: 'http://localhost:5001',
-    MAPBOX_TOKEN: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''
+    API_BASE_URL: process.env.VITE_BACKEND_URL || 'http://127.0.0.1:5003',
+    MAPBOX_TOKEN: process.env.VITE_MAPBOX_ACCESS_TOKEN
 }; 

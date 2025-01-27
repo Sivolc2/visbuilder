@@ -48,22 +48,21 @@ interface LayerState {
 const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
   const [viewConfig, setViewConfig] = useState<ViewConfig | null>(null);
   const [viewState, setViewState] = useState<ViewState>({
-    longitude: 0,
-    latitude: 0,
-    zoom: 1,
+    longitude: -122.4194,  // San Francisco default
+    latitude: 37.7749,
+    zoom: 12,
     pitch: 0,
     bearing: 0
   });
   const [layerData, setLayerData] = useState<Record<string, any>>({});
   const [visualizationData, setVisualizationData] = useState<Record<string, any>>({});
   const [layers, setLayers] = useState<LayerState[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const mapRef = useRef<any>(null);
 
   const fetchViewConfig = async () => {
     try {
-      console.log('Fetching view config for viewId:', viewId);
       const response = await axios.get<ViewConfig>(`${config.API_BASE_URL}/api/views/${viewId}`);
-      console.log('Received view config:', response.data);
       setViewConfig(response.data);
       
       if (response.data?.config?.settings) {
@@ -71,12 +70,13 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
         setViewState({
           longitude: center[0],
           latitude: center[1],
-          zoom: default_zoom,
+          zoom: default_zoom || 12,
           pitch: 0,
           bearing: 0
         });
       }
     } catch (error) {
+      setError('Error loading view configuration');
       console.error('Error fetching view config:', error);
     }
   };
@@ -150,21 +150,33 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
     if (!viewConfig) return [];
 
     return layers
-      .filter(layer => layer.visible)
+      .filter(layer => layer.visible && layerData[layer.id])
       .map(layer => {
-        const data = layerData[layer.id] || [];
+        const data = layerData[layer.id];
         
         switch (layer.type) {
           case 'line':
             return new LineLayer({
               id: layer.id,
               data,
+              getSourcePosition: d => d.start_point,
+              getTargetPosition: d => d.end_point,
+              getColor: [255, 0, 0],
+              getWidth: 3,
+              opacity: 0.8,
+              widthScale: 20,
+              widthMinPixels: 2,
               ...layer.properties
             });
           case 'heatmap':
             return new HeatmapLayer({
               id: layer.id,
               data,
+              getPosition: d => d.start_point,
+              getWeight: d => d.congestion_level,
+              intensity: 1,
+              threshold: 0.1,
+              radiusPixels: 60,
               ...layer.properties
             });
           case 'hexagon':
@@ -200,41 +212,24 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
           const sourceData = response.data;
 
           if (vis.type === 'line') {
-            const timestamps = sourceData?.timestamps || [];
-            const volume = sourceData?.volume || [];
+            const metadata = sourceData.metadata || sourceData.data;
             setVisualizationData(prev => ({
               ...prev,
               [vis.id]: {
-                x: timestamps,
-                y: volume
+                x: metadata.timestamps,
+                y: metadata.volume,
+                type: 'scatter',
+                mode: 'lines+markers'
               }
             }));
           } else if (vis.type === 'pie') {
-            if (!vis.properties?.values || !Array.isArray(vis.properties.values)) {
-              console.warn(`Invalid values configuration for visualization ${vis.id}`);
-              continue;
-            }
-
-            const values = vis.properties.values.map((path: string) => {
-              try {
-                const keys = path.split('.');
-                let value = sourceData;
-                for (const key of keys) {
-                  if (value === undefined || value === null) return 0;
-                  value = value[key];
-                }
-                return value || 0;
-              } catch (error) {
-                console.warn(`Error extracting value for path ${path}:`, error);
-                return 0;
-              }
-            });
-
+            const distribution = sourceData.data.congestion_distribution;
             setVisualizationData(prev => ({
               ...prev,
               [vis.id]: {
-                values,
-                labels: vis.properties?.labels || values.map((_, i) => `Value ${i + 1}`)
+                values: [distribution.High, distribution.Medium, distribution.Low],
+                labels: ['High', 'Medium', 'Low'],
+                type: 'pie'
               }
             }));
           }
@@ -277,11 +272,14 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
         controller={true}
         layers={getDeckLayers()}
       >
-        <Map
-          ref={mapRef}
-          mapboxAccessToken={mapboxToken}
-          mapStyle="mapbox://styles/mapbox/dark-v10"
-        />
+        {mapboxToken && (
+          <Map
+            ref={mapRef}
+            mapboxAccessToken={mapboxToken}
+            mapStyle="mapbox://styles/mapbox/dark-v10"
+            reuseMaps
+          />
+        )}
       </DeckGL>
       <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 1 }}>
         <LayerManager

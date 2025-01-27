@@ -59,9 +59,11 @@ def get_columns(source_id: str):
     try:
         # For development, return mock data columns
         if source_id == 'traffic_api':
-            df = pd.DataFrame(generate_traffic_data())
+            data = generate_traffic_data()['metadata']
+            df = pd.DataFrame(data)
         elif source_id == 'historical_data':
-            df = pd.DataFrame(generate_historical_data())
+            data = generate_historical_data()['data']
+            df = pd.DataFrame(data)
         else:
             return jsonify({'error': 'Data source not found'}), 404
             
@@ -81,6 +83,7 @@ def get_columns(source_id: str):
         return jsonify(columns)
         
     except Exception as e:
+        print(f"Error in get_columns: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @data_routes.route('/api/data/<source_id>/filtered', methods=['POST'])
@@ -91,33 +94,38 @@ def get_filtered_data(source_id: str):
         
         # Get base dataset
         if source_id == 'traffic_api':
-            df = pd.DataFrame(generate_traffic_data())
+            data = generate_traffic_data()
+            # Return routes data directly for map layers
+            return jsonify(data['data'])
         elif source_id == 'historical_data':
-            df = pd.DataFrame(generate_historical_data())
+            data = generate_historical_data()['data']
+            df = pd.DataFrame(data)
         else:
             return jsonify({'error': 'Data source not found'}), 404
             
-        # Apply filters
-        for filter_def in filters:
-            column = filter_def.get('column')
-            operator = filter_def.get('operator')
-            value = filter_def.get('value')
-            
-            if not all([column, operator, value]):
-                continue
+        # Apply filters (only for historical data)
+        if source_id == 'historical_data':
+            for filter_def in filters:
+                column = filter_def.get('column')
+                operator = filter_def.get('operator')
+                value = filter_def.get('value')
                 
-            if operator == 'equals':
-                df = df[df[column] == value]
-            elif operator == 'contains':
-                df = df[df[column].str.contains(value, na=False)]
-            elif operator == 'greater_than':
-                df = df[df[column] > value]
-            elif operator == 'less_than':
-                df = df[df[column] < value]
-            elif operator == 'in':
-                df = df[df[column].isin(value)]
-                
-        return jsonify(df.to_dict(orient='records'))
+                if not all([column, operator, value]):
+                    continue
+                    
+                if operator == 'equals':
+                    df = df[df[column] == value]
+                elif operator == 'contains':
+                    df = df[df[column].str.contains(value, na=False)]
+                elif operator == 'greater_than':
+                    df = df[df[column] > value]
+                elif operator == 'less_than':
+                    df = df[df[column] < value]
+                elif operator == 'in':
+                    df = df[df[column].isin(value)]
+                    
+            return jsonify(df.to_dict(orient='records'))
         
     except Exception as e:
+        print(f"Error in get_filtered_data: {str(e)}")
         return jsonify({'error': str(e)}), 500 

@@ -8,19 +8,32 @@ def generate_traffic_data():
     now = datetime.now()
     timestamps = [(now - timedelta(minutes=i)).isoformat() for i in range(num_points)]
     
+    # Create congestion levels array with exact length
+    congestion_options = ['High', 'Medium', 'Low']
+    congestion_levels = [congestion_options[i % len(congestion_options)] for i in range(num_points)]
+    
+    # Generate routes around San Francisco
+    routes = []
+    for _ in range(20):
+        # Create a route with start and end points
+        start_lat = 37.7749 + np.random.normal(0, 0.02)
+        start_lng = -122.4194 + np.random.normal(0, 0.02)
+        end_lat = 37.7749 + np.random.normal(0, 0.02)
+        end_lng = -122.4194 + np.random.normal(0, 0.02)
+        congestion = np.random.randint(1, 10)
+        
+        routes.append({
+            'start_point': [start_lng, start_lat],  # [longitude, latitude]
+            'end_point': [end_lng, end_lat],
+            'congestion_level': congestion
+        })
+    
     return {
-        'data': {
+        'data': routes,
+        'metadata': {
             'timestamps': timestamps,
             'volume': [int(50 + 30 * np.sin(i/10) + np.random.normal(0, 5)) for i in range(num_points)],
-            'congestion_levels': ['High', 'Medium', 'Low'] * (num_points // 3 + 1),
-            'routes': [
-                {
-                    'start_point': [-122.4194 + np.random.normal(0, 0.02), 37.7749 + np.random.normal(0, 0.02)],
-                    'end_point': [-122.4194 + np.random.normal(0, 0.02), 37.7749 + np.random.normal(0, 0.02)],
-                    'congestion_level': np.random.randint(1, 10)
-                }
-                for _ in range(20)
-            ]
+            'congestion_levels': congestion_levels
         }
     }
 

@@ -30,7 +30,7 @@ export class DataService {
   private baseUrl: string;
 
   private constructor() {
-    this.baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    this.baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:5003';
   }
 
   public static getInstance(): DataService {

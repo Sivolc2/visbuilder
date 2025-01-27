@@ -8,7 +8,7 @@ load_dotenv()
 app = create_app()
 
 if __name__ == '__main__':
-    port = int(os.getenv('FLASK_PORT', 5000))
+    port = int(os.getenv('FLASK_PORT', 5003))
     debug = os.getenv('FLASK_ENV', 'development') == 'development'
     
     app.run(
