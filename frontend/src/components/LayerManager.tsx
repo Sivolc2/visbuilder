@@ -60,15 +60,13 @@ const LayerManager: React.FC<LayerManagerProps> = ({
         <Space>
           <Switch
             checked={layer.visible}
-            onChange={(checked) => {
-              onLayerVisibilityChange(layer.id, checked);
-            }}
+            onChange={(checked) => onLayerVisibilityChange(layer.id, checked)}
           />
           <Text>{layer.name}</Text>
         </Space>
       ),
       children: (
-        <>
+        <div>
           <div style={{ padding: '8px 0' }}>
             <Text strong>Type: </Text>
             <Text>{layer.type}</Text>
@@ -86,7 +84,7 @@ const LayerManager: React.FC<LayerManagerProps> = ({
               />
             </div>
           )}
-        </>
+        </div>
       )
     }));
   };

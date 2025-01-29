@@ -28,7 +28,7 @@ const DataFilter: React.FC<DataFilterProps> = ({ columns, onFiltersChange }) => 
     ];
   };
 
-  const renderValueInput = (columnName: string) => {
+  const renderValueInput = (columnName: string, fieldName: number) => {
     const column = columns.find(col => col.name === columnName);
     if (!column) return null;
 
@@ -107,7 +107,7 @@ const DataFilter: React.FC<DataFilterProps> = ({ columns, onFiltersChange }) => 
                   name={[name, 'value']}
                   rules={[{ required: true, message: 'Missing value' }]}
                 >
-                  {renderValueInput(form.getFieldValue(['filters', name, 'column']))}
+                  {renderValueInput(form.getFieldValue(['filters', name, 'column']), name)}
                 </Form.Item>
                 <MinusCircleOutlined onClick={() => remove(name)} />
               </Space>
