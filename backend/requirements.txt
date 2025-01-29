@@ -6,3 +6,4 @@ watchdog
 boto3
 requests
 python-dotenv
+psutil>=5.9.0

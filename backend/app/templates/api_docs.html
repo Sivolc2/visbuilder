@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisBuilder API Documentation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .endpoint {
+            border-left: 4px solid #0d6efd;
+            margin-bottom: 1rem;
+            padding-left: 1rem;
+        }
+        .method {
+            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .method.get { background-color: #28a745; color: white; }
+        .method.post { background-color: #0d6efd; color: white; }
+        .method.put { background-color: #ffc107; color: black; }
+        .method.delete { background-color: #dc3545; color: white; }
+        .status-card {
+            transition: all 0.3s ease;
+        }
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .dataset-card {
+            margin-bottom: 1rem;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">VisBuilder API</a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Sidebar Navigation -->
+            <div class="col-md-3">
+                <div class="sticky-top" style="top: 2rem;">
+                    <div class="nav flex-column nav-pills" role="tablist">
+                        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#status" type="button">System Status</button>
+                        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#datasets" type="button">Datasets</button>
+                        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#endpoints" type="button">API Endpoints</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <div class="tab-content">
+                    <!-- System Status -->
+                    <div class="tab-pane fade show active" id="status">
+                        <h2 class="mb-4">System Status</h2>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card status-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">CPU Usage</h5>
+                                        <h2 class="text-primary">{{ status.system.cpu_usage_percent }}%</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card status-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Memory Usage</h5>
+                                        <h2 class="text-primary">{{ status.system.memory_usage_percent }}%</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card status-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Memory Available</h5>
+                                        <h2 class="text-primary">{{ status.system.memory_available_mb }}MB</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Datasets -->
+                    <div class="tab-pane fade" id="datasets">
+                        <h2 class="mb-4">Available Datasets</h2>
+                        {% for dataset in datasets %}
+                        <div class="card dataset-card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ dataset.name }}</h5>
+                                <h6 class="card-subtitle mb-2 text-muted">ID: {{ dataset.id }}</h6>
+                                <p class="card-text">{{ dataset.description }}</p>
+                                <div class="mb-3">
+                                    <strong>Type:</strong> {{ dataset.type }}<br>
+                                    <strong>Update Frequency:</strong> {{ dataset.update_frequency }}
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Sample Fields:</strong>
+                                    {% for field in dataset.sample_fields %}
+                                    <span class="badge bg-secondary me-1">{{ field }}</span>
+                                    {% endfor %}
+                                </div>
+                                <div>
+                                    <strong>Available Endpoints:</strong>
+                                    {% for endpoint in dataset.endpoints %}
+                                    <div class="endpoint mt-2">
+                                        <span class="method {{ endpoint.method.lower() }}">{{ endpoint.method }}</span>
+                                        <code>{{ endpoint.path }}</code>
+                                        <p class="text-muted small mb-0">{{ endpoint.description }}</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- API Endpoints -->
+                    <div class="tab-pane fade" id="endpoints">
+                        <h2 class="mb-4">API Endpoints</h2>
+                        {% for endpoint in status.api_endpoints %}
+                        <div class="endpoint">
+                            <div class="d-flex align-items-center">
+                                {% for method in endpoint.methods %}
+                                <span class="method {{ method.lower() }} me-2">{{ method }}</span>
+                                {% endfor %}
+                                <code>{{ endpoint.endpoint }}</code>
+                            </div>
+                            <p class="text-muted small mb-0">{{ endpoint.description }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-light mt-5 py-3">
+        <div class="container text-center">
+            <p class="text-muted mb-0">VisBuilder API Documentation</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-refresh system status every 30 seconds
+        setInterval(() => {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.querySelector('#status .cpu-usage').textContent = data.system.cpu_usage_percent + '%';
+                    document.querySelector('#status .memory-usage').textContent = data.system.memory_usage_percent + '%';
+                    document.querySelector('#status .memory-available').textContent = data.system.memory_available_mb + 'MB';
+                });
+        }, 30000);
+    </script>
+</body>
+</html> 
