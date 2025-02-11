@@ -20,7 +20,7 @@
   flex: 1;
   display: flex;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 /* Dashboard A Styles */
@@ -79,6 +79,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 1rem;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .chart-card {
@@ -86,7 +88,8 @@
   padding: 1rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  height: fit-content;
+  min-height: 300px;
+  overflow: visible;
 }
 
 /* Dashboard B Styles */
