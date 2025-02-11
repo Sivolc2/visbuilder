@@ -67,6 +67,91 @@ visbuilder/
    python run.py
    ```
 
+## Docker Setup
+
+### Building Docker Images
+1. Build the backend image:
+   ```bash
+   cd backend
+   docker build -t visbuilder-backend .
+   ```
+
+2. Build the frontend image:
+   ```bash
+   cd frontend
+   docker build -t visbuilder-frontend .
+   ```
+
+### Running Containers
+
+1. Start the backend container:
+   ```bash
+   docker run -d \
+     --name visbuilder-backend \
+     -p 5003:5003 \
+     -e FLASK_APP=run.py \
+     -e FLASK_ENV=production \
+     visbuilder-backend
+   ```
+
+2. Start the frontend container:
+   ```bash
+   docker run -d \
+     --name visbuilder-frontend \
+     -p 80:80 \
+     -e VITE_BACKEND_URL=http://localhost:5003 \
+     -e VITE_MAPBOX_ACCESS_TOKEN=your_mapbox_token_here \
+     visbuilder-frontend
+   ```
+
+### Accessing the Application
+- Frontend: http://localhost
+- Backend API: http://localhost:5003
+
+### Container Management
+```bash
+# View running containers
+docker ps
+
+# View container logs
+docker logs visbuilder-frontend
+docker logs visbuilder-backend
+
+# Stop containers
+docker stop visbuilder-frontend visbuilder-backend
+
+# Remove containers
+docker rm visbuilder-frontend visbuilder-backend
+
+# Remove images
+docker rmi visbuilder-frontend visbuilder-backend
+```
+
+### Development Mode
+For development with hot-reload:
+
+1. Backend (with volume mount):
+   ```bash
+   docker run -d \
+     --name visbuilder-backend \
+     -p 5003:5003 \
+     -e FLASK_APP=run.py \
+     -e FLASK_ENV=development \
+     -v $(pwd)/backend:/app \
+     visbuilder-backend
+   ```
+
+2. Frontend (with volume mount):
+   ```bash
+   docker run -d \
+     --name visbuilder-frontend \
+     -p 80:80 \
+     -e VITE_BACKEND_URL=http://localhost:5003 \
+     -e VITE_MAPBOX_ACCESS_TOKEN=your_mapbox_token_here \
+     -v $(pwd)/frontend:/app \
+     visbuilder-frontend
+   ```
+
 ## AWS Deployment TODO List
 
 ### Infrastructure Setup
