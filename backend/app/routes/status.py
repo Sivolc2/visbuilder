@@ -123,4 +123,11 @@ def get_datasets():
     except Exception as e:
         return jsonify({
             'error': str(e)
-        }), 500 
+        }), 500
+
+@status_routes.route('/health')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'service': 'visbuilder-backend'
+    }), 200 

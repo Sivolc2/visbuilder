@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import DynamicView from './components/DynamicView';
+import { HealthCheck } from './components/HealthCheck';
 import axios from 'axios';
 import { config } from './config';
 
@@ -67,6 +68,7 @@ function App() {
           />
         )}
       </main>
+      <HealthCheck />
     </div>
   );
 }

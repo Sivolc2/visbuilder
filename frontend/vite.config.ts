@@ -6,20 +6,21 @@ export default defineConfig(({ mode }) => {
   
   return {
     define: {
-      'process.env.VITE_MAPBOX_ACCESS_TOKEN': JSON.stringify(env.VITE_MAPBOX_ACCESS_TOKEN),
-      'process.env.VITE_BACKEND_URL': JSON.stringify(env.VITE_BACKEND_URL)
+      __API_BASE_URL__: JSON.stringify(mode === 'production' ? '/api' : `${env.VITE_BACKEND_URL}/api`),
+      __MAPBOX_TOKEN__: JSON.stringify(env.VITE_MAPBOX_ACCESS_TOKEN)
     },
     plugins: [react()],
     server: {
       port: 3000,
       open: true,
-      proxy: {
+      proxy: mode === 'development' ? {
         '/api': {
-          target: 'http://127.0.0.1:5003',
+          target: env.VITE_BACKEND_URL || 'http://localhost:5003',
           changeOrigin: true,
-          secure: false
+          secure: false,
+          rewrite: (path) => path.replace(/^\/api/, '')
         }
-      }
+      } : undefined
     }
   }
 }) 
