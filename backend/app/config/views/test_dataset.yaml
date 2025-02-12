@@ -1,0 +1,106 @@
+name: "NDR Analysis View"
+type: "split"
+description: "Network Data Records analysis dashboard"
+
+data_sources:
+  - id: "local_dataset"
+    type: "file"
+    path: "sample_ndrs_test.csv"
+    format: "csv"
+    refresh_interval: 3600
+    cache_enabled: true
+
+components:
+  - type: "map"
+    height: "60%"
+    layers:
+      - id: "ndr_locations"
+        type: "scatterplot"
+        data_source: "local_dataset"
+        properties:
+          getFillColor: [255, 140, 0]  # Orange color for visibility
+          getRadius: 5000
+          radiusScale: 1
+          radiusMinPixels: 5
+          radiusMaxPixels: 15
+          opacity: 0.8
+          pickable: true
+          tooltip: {
+            html: "Terminal: {Terminal_Type}<br/>Name: {Name}<br/>Airline: {Airline}<br/>Usage: {Flight_Usage_Mbps} Mbps"
+          }
+        
+      - id: "usage_heatmap"
+        type: "heatmap"
+        data_source: "local_dataset"
+        aggregation: "heatmap"  # New field to specify aggregation type
+        properties:
+          intensity_field: "Flight_Usage_Mbps"
+          resolution: 8
+          colorRange: [
+            [255, 255, 178],
+            [254, 204, 92],
+            [253, 141, 60],
+            [240, 59, 32],
+            [189, 0, 38]
+          ]
+          opacity: 0.6
+          
+      - id: "usage_hexgrid"
+        type: "polygon"
+        data_source: "local_dataset"
+        aggregation: "h3"  # Specify aggregation type
+        properties:
+          value_field: "Flight_Usage_Mbps"
+          resolution: 6
+          getFillColor: {
+            field: "value",
+            colorRange: [
+              [255, 255, 178],
+              [254, 204, 92],
+              [253, 141, 60],
+              [240, 59, 32],
+              [189, 0, 38]
+            ]
+          }
+          opacity: 0.6
+          pickable: true
+          tooltip: {
+            html: "Count: {point_count}<br/>Total Usage: {value} Mbps"
+          }
+
+  - type: "grid"
+    height: "40%"
+    visualizations:
+      - id: "usage_by_terminal"
+        type: "bar"
+        title: "Average Usage by Terminal Type"
+        data_source: "local_dataset"
+        properties:
+          type: "bar"
+          x_field: "Terminal_Type"
+          y_field: "Flight_Usage_Mbps"
+          aggregation: "mean"
+        layout:
+          title: "Average Bandwidth Usage by Terminal Type"
+          height: 250
+          margin: {t: 30, r: 20, l: 40, b: 40}
+
+      - id: "airline_distribution"
+        type: "pie"
+        title: "NDR Distribution by Airline"
+        data_source: "local_dataset"
+        properties:
+          type: "pie"
+          value_field: "Flight_Usage_Mbps"
+          label_field: "Airline"
+          aggregation: "sum"  # Sum up usage by airline
+        layout:
+          title: "Total Bandwidth Usage by Airline"
+          height: 250
+          showlegend: true
+
+settings:
+  refresh_rate: 60  # seconds
+  default_zoom: 8   # Zoom level to show the Bay Area
+  center: [-122.4194, 37.7749]    # Center on San Francisco Bay Area
+  time_window: 3600  # 1 hour of data 

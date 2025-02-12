@@ -77,6 +77,12 @@ interface ViewStateChangeParams {
   viewState: ViewState;
 }
 
+interface TooltipInfo {
+  object: any;
+  x: number;
+  y: number;
+}
+
 const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
   const [viewConfig, setViewConfig] = useState<ViewConfig | null>(null);
   const [viewState, setViewState] = useState<ViewState>({
@@ -90,7 +96,40 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
   const [visualizationData, setVisualizationData] = useState<Record<string, any>>({});
   const [layers, setLayers] = useState<LayerState[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; content: string } | null>(null);
   const mapRef = useRef<any>(null);
+
+  // Helper function to format tooltip content
+  const formatTooltipContent = (object: any) => {
+    if (!object) return '';
+    
+    // For H3 hexagons
+    if (object.hex) {
+      const avgValue = object.value / object.point_count;
+      return `
+        <div style="background: rgba(0,0,0,0.8); color: white; padding: 8px; border-radius: 4px;">
+          <div><b>Points in Cell:</b> ${object.point_count}</div>
+          <div><b>Total Usage:</b> ${object.value.toFixed(2)} Mbps</div>
+          <div><b>Average Usage:</b> ${avgValue.toFixed(2)} Mbps</div>
+        </div>
+      `;
+    }
+    
+    // For point features
+    if (object.properties) {
+      const props = object.properties;
+      return `
+        <div style="background: rgba(0,0,0,0.8); color: white; padding: 8px; border-radius: 4px;">
+          ${Object.entries(props)
+            .filter(([key]) => key !== 'geometry')
+            .map(([key, value]) => `<div><b>${key.replace(/_/g, ' ')}:</b> ${value}</div>`)
+            .join('')}
+        </div>
+      `;
+    }
+    
+    return '';
+  };
 
   const fetchViewConfig = async () => {
     try {
@@ -228,12 +267,6 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
               updateTriggers: {
                 getFillColor: [layer.properties.getFillColor],
                 getRadius: [layer.properties.getRadius]
-              },
-              onHover: (info: any) => {
-                if (info.object) {
-                  const { properties } = info.object;
-                  info.object = properties;
-                }
               }
             });
           }
@@ -250,6 +283,7 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
               threshold: layer.properties.threshold || 0.1,
               radiusPixels: layer.properties.radiusPixels || 60,
               opacity: layer.properties.opacity || 0.6,
+              pickable: true,
               updateTriggers: {
                 getWeight: [layer.properties.intensity]
               }
@@ -295,14 +329,6 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
               coverage: 1,
               updateTriggers: {
                 getFillColor: [layer.properties.getFillColor]
-              },
-              onHover: (info: any) => {
-                if (info.object) {
-                  info.object = {
-                    value: info.object.value,
-                    point_count: info.object.point_count
-                  };
-                }
               }
             });
           }
@@ -422,6 +448,19 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
         onViewStateChange={({ viewState }: ViewStateChangeParams) => setViewState(viewState)}
         controller={true}
         layers={deckLayers}
+        getTooltip={({object, x, y}: TooltipInfo) => {
+          if (object) {
+            return {
+              html: formatTooltipContent(object),
+              style: {
+                color: '#fff',
+                fontSize: '12px',
+                fontFamily: 'Arial, sans-serif'
+              }
+            };
+          }
+          return null;
+        }}
       >
         {mapboxToken && (
           <Map
