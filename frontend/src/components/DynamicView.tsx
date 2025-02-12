@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import DeckGL from '@deck.gl/react';
 import { Map } from 'react-map-gl';
 import Plot from 'react-plotly.js';
@@ -195,9 +195,10 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
     );
   };
 
-  const getDeckLayers = () => {
+  const deckLayers = useMemo(() => {
     if (!viewConfig) return [];
 
+    console.log('Recomputing deck layers');
     return layers
       .filter(layer => layer.visible && layerData[layer.id])
       .map(layer => {
@@ -206,8 +207,7 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
           type: layer.type, 
           features: data.features?.length,
           firstFeature: data.features?.[0],
-          layerConfig: layer.properties,
-          aggregation: layer.properties.aggregation
+          layerConfig: layer.properties
         });
         
         switch (layer.type) {
@@ -216,11 +216,7 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
             return new ScatterplotLayer({
               id: layer.id,
               data: data.features,
-              getPosition: (d: GeoJSONFeature) => {
-                const coords = d.geometry.coordinates;
-                console.log(`ScatterplotLayer position:`, coords);
-                return coords;
-              },
+              getPosition: (d: GeoJSONFeature) => d.geometry.coordinates,
               getFillColor: layer.properties.getFillColor || [255, 140, 0],
               getRadius: layer.properties.getRadius || 5000,
               radiusScale: 1,
@@ -228,6 +224,10 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
               radiusMaxPixels: 15,
               opacity: layer.properties.opacity || 0.8,
               pickable: true,
+              updateTriggers: {
+                getFillColor: [layer.properties.getFillColor],
+                getRadius: [layer.properties.getRadius]
+              },
               onHover: (info: any) => {
                 if (info.object) {
                   const { properties } = info.object;
@@ -248,7 +248,10 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
               intensity: layer.properties.intensity || 1,
               threshold: layer.properties.threshold || 0.1,
               radiusPixels: layer.properties.radiusPixels || 60,
-              opacity: layer.properties.opacity || 0.6
+              opacity: layer.properties.opacity || 0.6,
+              updateTriggers: {
+                getWeight: [layer.properties.intensity]
+              }
             });
           }
           
@@ -267,11 +270,6 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
               return null;
             }
 
-            // Log the first feature for debugging
-            if (h3Data.features.length > 0) {
-              console.log('First H3 feature:', h3Data.features[0]);
-            }
-
             return new H3HexagonLayer({
               id: layer.id,
               data: h3Data.features,
@@ -280,18 +278,9 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
               filled: true,
               extruded: false,
               wireframe: true,
-              getHexagon: (d: H3Feature) => {
-                if (!d.hex) {
-                  console.warn('Missing hex index in feature:', d);
-                  return null;
-                }
-                return d.hex;
-              },
+              getHexagon: (d: H3Feature) => d.hex,
               getFillColor: (d: H3Feature) => {
-                if (typeof d.value !== 'number') {
-                  console.warn('Invalid value in feature:', d);
-                  return [0, 0, 0, 0];
-                }
+                if (typeof d.value !== 'number') return [0, 0, 0, 0];
                 const colorRange = layer.properties.getFillColor?.colorRange || 
                   [[255, 255, 178], [254, 204, 92], [253, 141, 60], [240, 59, 32], [189, 0, 38]];
                 const values = h3Data.features.map(f => f.value).filter((v): v is number => typeof v === 'number');
@@ -324,7 +313,7 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
         }
       })
       .filter(Boolean);
-  };
+  }, [viewConfig, layers, layerData]);
 
   const fetchVisualizationData = async () => {
     if (!viewConfig) return;
@@ -431,7 +420,7 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
         viewState={viewState}
         onViewStateChange={({ viewState }: ViewStateChangeParams) => setViewState(viewState)}
         controller={true}
-        layers={getDeckLayers()}
+        layers={deckLayers}
       >
         {mapboxToken && (
           <Map
