@@ -10,6 +10,7 @@ import axios from 'axios';
 import { config } from '../config';
 import LayerManager from './LayerManager';
 import { FilterDefinition } from '../services/dataService';
+import maplibregl from 'maplibre-gl';
 
 interface ViewConfig {
   id: string;
@@ -428,6 +429,14 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
             mapboxAccessToken={mapboxToken}
             mapStyle="mapbox://styles/mapbox/dark-v10"
             reuseMaps
+            maxZoom={20}
+            minZoom={0}
+            localIdeographFontFamily="sans-serif"
+            cooperativeGestures
+            preserveDrawingBuffer
+            attributionControl={false}
+            maxTileCacheSize={0}
+            crossSourceCollisions={false}
           />
         )}
       </DeckGL>

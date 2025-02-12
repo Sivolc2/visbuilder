@@ -38,7 +38,7 @@ class DataProcessor:
             self._save_geojson(heatmap_geojson, dataset_dir / 'heatmap.geojson')
             
             # 3. Create and save H3 grid GeoJSON
-            h3_geojson = create_h3_grid_geojson(df)
+            h3_geojson = create_h3_grid_geojson(df, resolution=4)  # Set resolution to 4 for larger hexagons
             self._save_geojson(h3_geojson, dataset_dir / 'h3_grid.geojson')
             
             print(f"Successfully preprocessed dataset {dataset_id}")

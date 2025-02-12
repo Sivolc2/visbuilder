@@ -6,6 +6,7 @@ import importlib
 from ..config.config_loader import ConfigLoader
 from ..config.data_sources import DataSourceType
 from ..data_processor import DataProcessor
+from ..utils.aggregations import create_heatmap_geojson, create_h3_grid_geojson
 import pandas as pd
 import json
 import requests
@@ -241,11 +242,26 @@ def get_filtered_data(source_id: str):
             data_type = data_type_map.get(layer_type, 'points')
             print(f"Selected data type: {data_type} for layer type: {layer_type}")
             
+            # Get resolution from layer config for H3 grid
+            resolution = layer_config.get('properties', {}).get('resolution', 4)
+            print(f"Using resolution: {resolution} for H3 grid")
+            
             # Load preprocessed data
-            result = data_processor.get_processed_data(source_id, data_type)
-            print(f"Loaded {data_type} data with {len(result['features'])} features")
-            if len(result['features']) > 0:
-                print(f"Sample feature: {result['features'][0]}")
+            if data_type == 'h3_grid':
+                # For H3 grid, create data with specified resolution
+                source_config = config_loader.load_data_source_config(source_id)
+                if not source_config:
+                    return jsonify({'error': 'Data source not found'}), 404
+                    
+                df = pd.read_csv(os.path.join('datasets', source_config['path']))
+                result = create_h3_grid_geojson(
+                    df,
+                    value_field=layer_config.get('properties', {}).get('value_field', 'Flight_Usage_Mbps'),
+                    resolution=resolution
+                )
+            else:
+                # For other types, use preprocessed data
+                result = data_processor.get_processed_data(source_id, data_type)
             
             # Apply filters if needed
             if filters:

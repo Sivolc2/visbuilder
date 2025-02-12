@@ -51,7 +51,7 @@ components:
         aggregation: "h3"  # Specify aggregation type
         properties:
           value_field: "Flight_Usage_Mbps"
-          resolution: 8
+          resolution: 6
           getFillColor: {
             field: "value",
             colorRange: [
