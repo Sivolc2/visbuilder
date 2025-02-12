@@ -10,6 +10,6 @@ const getApiBaseUrl = () => {
 export const config = {
     API_BASE_URL: getApiBaseUrl(),
     MAPBOX_TOKEN: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN,
-    // Add health check endpoint
+    // Use API_BASE_URL for consistency
     HEALTH_CHECK_URL: `${getApiBaseUrl()}/health`
 }; 

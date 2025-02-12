@@ -3,10 +3,9 @@ import DeckGL from '@deck.gl/react';
 import { Map } from 'react-map-gl';
 import Plot from 'react-plotly.js';
 import { ViewState } from '@deck.gl/core';
-import { LineLayer } from '@deck.gl/layers';
-import { HexagonLayer } from '@deck.gl/aggregation-layers';
+import { LineLayer, PolygonLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
-import { ScatterplotLayer } from '@deck.gl/layers';
+import { H3HexagonLayer } from '@deck.gl/geo-layers';
 import axios from 'axios';
 import { config } from '../config';
 import LayerManager from './LayerManager';
@@ -45,10 +44,42 @@ interface LayerState {
   properties: Record<string, any>;
 }
 
+interface H3Feature {
+  hex: string;
+  value: number;
+  point_count: number;
+}
+
+interface H3Collection {
+  type: 'H3Collection';
+  features: H3Feature[];
+}
+
+interface LayerConfig {
+  id: string;
+  name: string;
+  type: string;
+  data_source: string;
+  properties: Record<string, any>;
+}
+
+interface GeoJSONFeature {
+  type: 'Feature';
+  geometry: {
+    type: string;
+    coordinates: number[];
+  };
+  properties: Record<string, any>;
+}
+
+interface ViewStateChangeParams {
+  viewState: ViewState;
+}
+
 const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
   const [viewConfig, setViewConfig] = useState<ViewConfig | null>(null);
   const [viewState, setViewState] = useState<ViewState>({
-    longitude: -122.4194,  // San Francisco default
+    longitude: -122.4194,  // Default center, will be updated from config
     latitude: 37.7749,
     zoom: 12,
     pitch: 0,
@@ -62,18 +93,18 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
 
   const fetchViewConfig = async () => {
     try {
-      const response = await axios.get<ViewConfig>(`${config.API_BASE_URL}/api/views/${viewId}`);
+      const response = await axios.get<ViewConfig>(`${config.API_BASE_URL}/views/${viewId}`);
       setViewConfig(response.data);
       
+      // Update view state based on configuration
       if (response.data?.config?.settings) {
         const { center, default_zoom } = response.data.config.settings;
-        setViewState({
+        setViewState(prev => ({
+          ...prev,
           longitude: center[0],
           latitude: center[1],
-          zoom: default_zoom || 12,
-          pitch: 0,
-          bearing: 0
-        });
+          zoom: default_zoom || prev.zoom
+        }));
       }
     } catch (error) {
       setError('Error loading view configuration');
@@ -89,10 +120,28 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
 
   const fetchLayerData = async (layer: LayerState) => {
     try {
+      console.log(`Fetching data for layer: ${layer.id} with config:`, {
+        type: layer.type,
+        properties: layer.properties
+      });
+      
       const response = await axios.post(
-        `${config.API_BASE_URL}/api/data/${layer.data_source}/filtered`,
-        { filters: layer.filters }
+        `${config.API_BASE_URL}/data/${layer.data_source}/filtered`,
+        { 
+          filters: layer.filters,
+          layer_config: {
+            type: layer.type,
+            properties: layer.properties
+          }
+        }
       );
+      
+      console.log(`Received data for layer ${layer.id}:`, {
+        type: response.data.type,
+        featureCount: response.data.features?.length,
+        firstFeature: response.data.features?.[0]
+      });
+      
       setLayerData(prev => ({
         ...prev,
         [layer.id]: response.data
@@ -117,7 +166,7 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
     if (viewConfig) {
       const initialLayers = viewConfig.config.components
         .filter(comp => comp.type === 'map')
-        .flatMap(comp => comp.layers.map(layer => ({
+        .flatMap(comp => comp.layers.map((layer: LayerConfig) => ({
           id: layer.id,
           name: layer.name || layer.id,
           type: layer.type,
@@ -153,46 +202,125 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
       .filter(layer => layer.visible && layerData[layer.id])
       .map(layer => {
         const data = layerData[layer.id];
+        console.log(`Creating deck.gl layer for ${layer.id}:`, { 
+          type: layer.type, 
+          features: data.features?.length,
+          firstFeature: data.features?.[0],
+          layerConfig: layer.properties,
+          aggregation: layer.properties.aggregation
+        });
         
         switch (layer.type) {
-          case 'line':
-            return new LineLayer({
-              id: layer.id,
-              data,
-              getSourcePosition: d => d.start_point,
-              getTargetPosition: d => d.end_point,
-              getColor: [255, 0, 0],
-              getWidth: 3,
-              opacity: 0.8,
-              widthScale: 20,
-              widthMinPixels: 2,
-              ...layer.properties
-            });
-          case 'heatmap':
-            return new HeatmapLayer({
-              id: layer.id,
-              data,
-              getPosition: d => d.start_point,
-              getWeight: d => d.congestion_level,
-              intensity: 1,
-              threshold: 0.1,
-              radiusPixels: 60,
-              ...layer.properties
-            });
-          case 'hexagon':
-            return new HexagonLayer({
-              id: layer.id,
-              data,
-              ...layer.properties
-            });
-          case 'scatterplot':
+          case 'scatterplot': {
+            console.log('Creating scatterplot layer');
             return new ScatterplotLayer({
               id: layer.id,
-              data,
-              ...layer.properties
+              data: data.features,
+              getPosition: (d: GeoJSONFeature) => {
+                const coords = d.geometry.coordinates;
+                console.log(`ScatterplotLayer position:`, coords);
+                return coords;
+              },
+              getFillColor: layer.properties.getFillColor || [255, 140, 0],
+              getRadius: layer.properties.getRadius || 5000,
+              radiusScale: 1,
+              radiusMinPixels: 5,
+              radiusMaxPixels: 15,
+              opacity: layer.properties.opacity || 0.8,
+              pickable: true,
+              onHover: (info: any) => {
+                if (info.object) {
+                  const { properties } = info.object;
+                  info.object = properties;
+                }
+              }
             });
-          default:
+          }
+          
+          case 'heatmap': {
+            console.log('Creating heatmap layer');
+            return new HeatmapLayer({
+              id: layer.id,
+              data: data.features,
+              getPosition: (d: GeoJSONFeature) => d.geometry.coordinates,
+              getWeight: (d: GeoJSONFeature) => d.properties.intensity || 1,
+              colorRange: layer.properties.colorRange,
+              intensity: layer.properties.intensity || 1,
+              threshold: layer.properties.threshold || 0.1,
+              radiusPixels: layer.properties.radiusPixels || 60,
+              opacity: layer.properties.opacity || 0.6
+            });
+          }
+          
+          case 'polygon': {
+            // For polygon layers, we expect preprocessed H3 data
+            console.log('Creating H3 hexagon layer with data:', {
+              type: data.type,
+              featureCount: data.features?.length,
+              firstFeature: data.features?.[0],
+              layerConfig: layer.properties
+            });
+
+            const h3Data = data as H3Collection;
+            if (!h3Data.features || !Array.isArray(h3Data.features)) {
+              console.error('Invalid H3 data format:', h3Data);
+              return null;
+            }
+
+            // Log the first feature for debugging
+            if (h3Data.features.length > 0) {
+              console.log('First H3 feature:', h3Data.features[0]);
+            }
+
+            return new H3HexagonLayer({
+              id: layer.id,
+              data: h3Data.features,
+              pickable: true,
+              stroked: true,
+              filled: true,
+              extruded: false,
+              wireframe: true,
+              getHexagon: (d: H3Feature) => {
+                if (!d.hex) {
+                  console.warn('Missing hex index in feature:', d);
+                  return null;
+                }
+                return d.hex;
+              },
+              getFillColor: (d: H3Feature) => {
+                if (typeof d.value !== 'number') {
+                  console.warn('Invalid value in feature:', d);
+                  return [0, 0, 0, 0];
+                }
+                const colorRange = layer.properties.getFillColor?.colorRange || 
+                  [[255, 255, 178], [254, 204, 92], [253, 141, 60], [240, 59, 32], [189, 0, 38]];
+                const values = h3Data.features.map(f => f.value).filter((v): v is number => typeof v === 'number');
+                const maxValue = Math.max(...values);
+                const index = Math.floor((d.value / maxValue) * (colorRange.length - 1));
+                return colorRange[Math.min(index, colorRange.length - 1)];
+              },
+              getLineColor: [255, 255, 255],
+              lineWidthMinPixels: 1,
+              opacity: layer.properties.opacity || 0.6,
+              coverage: 1,
+              updateTriggers: {
+                getFillColor: [layer.properties.getFillColor]
+              },
+              onHover: (info: any) => {
+                if (info.object) {
+                  info.object = {
+                    value: info.object.value,
+                    point_count: info.object.point_count
+                  };
+                }
+              }
+            });
+          }
+          
+          default: {
+            console.warn(`Unknown layer type: ${layer.type}`);
             return null;
+          }
         }
       })
       .filter(Boolean);
@@ -208,28 +336,61 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
 
       for (const vis of visualizations) {
         try {
-          const response = await axios.get(`${config.API_BASE_URL}/api/data/${vis.data_source}`);
+          const response = await axios.get(`${config.API_BASE_URL}/data/${vis.data_source}`);
           const sourceData = response.data;
+          const records = sourceData.data || []; // Use data field from response
 
           if (vis.type === 'line') {
-            const metadata = sourceData.metadata || sourceData.data;
             setVisualizationData(prev => ({
               ...prev,
               [vis.id]: {
-                x: metadata.timestamps,
-                y: metadata.volume,
+                x: records.map((d: any) => d.Epoch),
+                y: records.map((d: any) => d.Flight_Usage_Mbps),
                 type: 'scatter',
                 mode: 'lines+markers'
               }
             }));
           } else if (vis.type === 'pie') {
-            const distribution = sourceData.data.congestion_distribution;
+            // Group by airline and sum up usage
+            const airlineData = records.reduce((acc: any, curr: any) => {
+              const airline = curr.Airline;
+              const usage = curr.Flight_Usage_Mbps;
+              acc[airline] = (acc[airline] || 0) + usage;
+              return acc;
+            }, {});
+            
             setVisualizationData(prev => ({
               ...prev,
               [vis.id]: {
-                values: [distribution.High, distribution.Medium, distribution.Low],
-                labels: ['High', 'Medium', 'Low'],
+                values: Object.values(airlineData),
+                labels: Object.keys(airlineData),
                 type: 'pie'
+              }
+            }));
+          } else if (vis.type === 'bar') {
+            // Group by Terminal_Type and calculate average usage
+            const terminalData = records.reduce((acc: any, curr: any) => {
+              const type = curr.Terminal_Type;
+              const usage = curr.Flight_Usage_Mbps;
+              if (!acc[type]) {
+                acc[type] = { total: 0, count: 0 };
+              }
+              acc[type].total += usage;
+              acc[type].count += 1;
+              return acc;
+            }, {});
+            
+            const averages = Object.entries(terminalData).map(([type, data]: [string, any]) => ({
+              type,
+              average: data.total / data.count
+            }));
+            
+            setVisualizationData(prev => ({
+              ...prev,
+              [vis.id]: {
+                x: averages.map(d => d.type),
+                y: averages.map(d => d.average),
+                type: 'bar'
               }
             }));
           }
@@ -253,7 +414,7 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
       fetchVisualizationData();
       const interval = setInterval(
         fetchVisualizationData,
-        viewConfig.config.settings.refresh_rate * 1000
+        (viewConfig.config.settings?.refresh_rate || 30) * 1000  // Default to 30 seconds if not specified
       );
       return () => clearInterval(interval);
     }
@@ -268,7 +429,7 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <DeckGL
         viewState={viewState}
-        onViewStateChange={({ viewState }) => setViewState(viewState)}
+        onViewStateChange={({ viewState }: ViewStateChangeParams) => setViewState(viewState)}
         controller={true}
         layers={getDeckLayers()}
       >
@@ -298,8 +459,29 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
                 const data = visualizationData[vis.id];
                 if (!data) return null;
 
+                const layout = {
+                  title: {
+                    text: vis.title,
+                    font: {
+                      size: 16,
+                      color: '#333'
+                    }
+                  },
+                  showlegend: true,
+                  margin: { t: 40, r: 30, l: 40, b: 40 },
+                  height: 250,
+                  paper_bgcolor: 'white',
+                  plot_bgcolor: 'white',
+                  ...vis.properties.layout
+                };
+
                 return (
-                  <div key={vis.id} style={{ background: 'white', padding: '1rem', borderRadius: '4px' }}>
+                  <div key={vis.id} style={{ 
+                    background: 'white', 
+                    padding: '1rem', 
+                    borderRadius: '4px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}>
                     <Plot
                       data={[
                         {
@@ -308,15 +490,16 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
                           x: data.x,
                           y: data.y,
                           values: data.values,
-                          labels: data.labels
+                          labels: data.labels,
+                          hoverinfo: 'all',
+                          textinfo: 'value'
                         }
                       ]}
-                      layout={{
-                        title: vis.title,
-                        ...vis.properties.layout,
-                        margin: { t: 30, r: 30, l: 30, b: 30 }
+                      layout={layout}
+                      config={{ 
+                        responsive: true,
+                        displayModeBar: false // Hide the plotly toolbar
                       }}
-                      config={{ responsive: true }}
                       style={{ width: '100%', height: '100%' }}
                     />
                   </div>

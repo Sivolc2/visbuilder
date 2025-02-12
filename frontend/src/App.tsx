@@ -24,12 +24,12 @@ function App() {
 
   const fetchViews = async () => {
     try {
-      const response = await axios.get<ViewsResponse>(`${config.API_BASE_URL}/api/views`);
+      const response = await axios.get<ViewsResponse>(`${config.API_BASE_URL}/views`);
       const viewsData = Object.values(response.data);
       setViews(viewsData);
       
-      // Select the first view by default if none is selected
-      if (viewsData.length > 0 && !selectedViewId) {
+      // Only set default view if no view is selected and this is the initial load
+      if (viewsData.length > 0 && selectedViewId === '') {
         setSelectedViewId(viewsData[0].id);
       }
     } catch (error) {
@@ -40,9 +40,21 @@ function App() {
   useEffect(() => {
     fetchViews();
     // Refresh views every 30 seconds
-    const interval = setInterval(fetchViews, 30000);
+    const interval = setInterval(() => {
+      // Only update the views list without changing selection
+      const updateViews = async () => {
+        try {
+          const response = await axios.get<ViewsResponse>(`${config.API_BASE_URL}/views`);
+          const viewsData = Object.values(response.data);
+          setViews(viewsData);
+        } catch (error) {
+          console.error('Error fetching views:', error);
+        }
+      };
+      updateViews();
+    }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, []); // Keep empty dependency array since we don't want to recreate the interval
 
   return (
     <div className="App">

@@ -1,6 +1,7 @@
 import yaml
 from pathlib import Path
 from typing import Dict, List, Any, Optional
+from .data_sources import DataSourceType, DataSourceConfigFactory
 
 class ConfigLoader:
     def __init__(self, config_dir: str):
@@ -20,6 +21,26 @@ class ConfigLoader:
             print(f"Error loading view config from {config_path}: {str(e)}")
             return None
             
+    def load_data_source_config(self, source_id: str) -> Optional[Dict[str, Any]]:
+        """Load configuration for a specific data source"""
+        try:
+            # Look for the data source in all view configs
+            for config_file in self.config_dir.glob('views/*.yaml'):
+                with open(config_file, 'r') as f:
+                    config = yaml.safe_load(f)
+                    if not config or 'data_sources' not in config:
+                        continue
+                        
+                    for source in config['data_sources']:
+                        if source.get('id') == source_id:
+                            return source
+                            
+            return None
+            
+        except Exception as e:
+            print(f"Error loading data source config: {str(e)}")
+            return None
+
     def validate_config(self, config: Dict[str, Any]) -> bool:
         """Validate the configuration format"""
         required_fields = {'name', 'type', 'description', 'data_sources', 'components'}

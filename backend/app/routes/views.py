@@ -8,7 +8,7 @@ view_manager = ViewManager(os.getenv('CONFIG_DIR', 'app/config'))
 # Start watching for config changes
 view_manager.start_watching()
 
-@views_routes.route('/api/views', methods=['GET'])
+@views_routes.route('/views', methods=['GET'])
 def get_views():
     """Get all available views"""
     try:
@@ -17,7 +17,7 @@ def get_views():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@views_routes.route('/api/views/<view_id>', methods=['GET'])
+@views_routes.route('/views/<view_id>', methods=['GET'])
 def get_view(view_id):
     """Get a specific view configuration"""
     try:

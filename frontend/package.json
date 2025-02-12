@@ -6,6 +6,7 @@
     "@ant-design/icons": "^5.5.2",
     "@deck.gl/aggregation-layers": "^8.9.32",
     "@deck.gl/core": "^8.9.32",
+    "@deck.gl/geo-layers": "^8.9.36",
     "@deck.gl/layers": "^8.9.32",
     "@deck.gl/react": "^8.9.32",
     "@types/react": "^18.3.18",

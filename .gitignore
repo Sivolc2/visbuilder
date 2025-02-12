@@ -65,3 +65,6 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.sw?
+*.geojson
+*.csv
+frontend/package-lock.json

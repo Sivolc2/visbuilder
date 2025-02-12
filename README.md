@@ -201,3 +201,9 @@ Please read our contributing guidelines before submitting pull requests.
 
 ## License
 [Add appropriate license information]
+
+```bash
+flask run --port=5003
+npm run start
+
+```
