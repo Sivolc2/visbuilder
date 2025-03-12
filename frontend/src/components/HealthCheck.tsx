@@ -14,9 +14,19 @@ export const HealthCheck: React.FC = () => {
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const response = await axios.get(config.HEALTH_CHECK_URL);
-        setHealth(response.data);
-        setError(null);
+        // Try the primary health endpoint first
+        try {
+          const response = await axios.get(config.HEALTH_CHECK_URL);
+          setHealth(response.data);
+          setError(null);
+          return;
+        } catch (primaryError) {
+          // If primary endpoint fails, try the fallback endpoint
+          const fallbackUrl = config.HEALTH_CHECK_FALLBACK_URL;
+          const fallbackResponse = await axios.get(fallbackUrl);
+          setHealth(fallbackResponse.data);
+          setError(null);
+        }
       } catch (err) {
         setError('Backend service unavailable');
         setHealth(null);

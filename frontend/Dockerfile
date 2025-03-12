@@ -26,9 +26,17 @@ FROM nginx:alpine
 # Copy built files from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Create health check response file
+RUN echo '{"status":"healthy","service":"visbuilder-frontend"}' > /usr/share/nginx/html/health.json
+
 # Add nginx configuration for SPA and API proxy
 RUN echo $'server {\n\
     listen 80;\n\
+    \n\
+    location /health {\n\
+        default_type application/json;\n\
+        return 200 \'{"status":"healthy","service":"visbuilder-frontend","timestamp":"\$time_iso8601"}\';\n\
+    }\n\
     \n\
     location / {\n\
         root /usr/share/nginx/html;\n\

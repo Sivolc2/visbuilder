@@ -64,8 +64,17 @@ visbuilder/
 4. Set up environment variables
 5. Run the development server:
    ```bash
-   python run.py
+   # Using Flask directly
+   flask run --port=5003
+   
+   # Or using Gunicorn (recommended for production)
+   gunicorn --bind 0.0.0.0:5003 --workers=4 --threads=4 "app:create_app()"
+
+   ## Health check endpoints:
+   ## - Backend: http://0.0.0.0:5003/api/health or http://0.0.0.0:5003/health
+   ## - Frontend: http://localhost:3000/health
    ```
+
 
 ## Docker Setup
 
@@ -89,8 +98,7 @@ visbuilder/
    docker run -d \
      --name visbuilder-backend \
      -p 5003:5003 \
-     -e FLASK_APP=run.py \
-     -e FLASK_ENV=production \
+     -e PORT=5003 \
      visbuilder-backend
    ```
 
@@ -107,6 +115,9 @@ visbuilder/
 ### Accessing the Application
 - Frontend: http://localhost
 - Backend API: http://localhost:5003
+- Health Endpoints:
+  - Frontend: http://localhost/health
+  - Backend: http://localhost:5003/health or http://localhost:5003/api/health
 
 ### Container Management
 ```bash
@@ -135,8 +146,7 @@ For development with hot-reload:
    docker run -d \
      --name visbuilder-backend \
      -p 5003:5003 \
-     -e FLASK_APP=run.py \
-     -e FLASK_ENV=development \
+     -e PORT=5003 \
      -v $(pwd)/backend:/app \
      visbuilder-backend
    ```
@@ -203,7 +213,11 @@ Please read our contributing guidelines before submitting pull requests.
 [Add appropriate license information]
 
 ```bash
+# Using Flask directly
 flask run --port=5003
-npm run start
 
-```
+# Using Gunicorn (recommended for production)
+gunicorn --bind 0.0.0.0:5003 --workers=4 --threads=4 "app:create_app()"
+
+# Frontend
+npm run start
