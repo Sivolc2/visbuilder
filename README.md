@@ -29,6 +29,7 @@ visbuilder/
 - Pandas for data processing
 - Boto3 for AWS integration
 - Python-dotenv for environment management
+- AWS Athena support for data queries
 
 ## Local Development Setup
 
@@ -211,6 +212,55 @@ Please read our contributing guidelines before submitting pull requests.
 
 ## License
 [Add appropriate license information]
+
+## Data Sources
+
+The application supports multiple data source types:
+
+### File Data Source
+Local file-based data sources for development and testing.
+
+```yaml
+data_sources:
+  - id: "local_dataset"
+    type: "file"
+    path: "sample_data.csv"
+    format: "csv"
+    refresh_interval: 3600
+    cache_enabled: true
+```
+
+### AWS Athena Data Source
+Query data directly from AWS Athena.
+
+```yaml
+data_sources:
+  - id: "athena_dataset"
+    type: "athena"
+    query: "SELECT * FROM my_table WHERE date = CURRENT_DATE"
+    database: "my_database"
+    workgroup: "primary"
+    region: "us-east-1"
+    environment: "dev"
+    output_location: "s3://athena-query-results/my-data/"
+    refresh_interval: 3600
+    cache_enabled: true
+```
+
+### S3 Data Source
+Fetch data from AWS S3 buckets.
+
+```yaml
+data_sources:
+  - id: "s3_dataset"
+    type: "s3"
+    bucket: "my-data-bucket"
+    key: "path/to/data.csv"
+    region: "us-east-1"
+    format: "csv"
+    refresh_interval: 3600
+    cache_enabled: true
+```
 
 ```bash
 # Using Flask directly

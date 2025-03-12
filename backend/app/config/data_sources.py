@@ -7,6 +7,7 @@ class DataSourceType(str, Enum):
     DATABASE = "database"
     FILE = "file"
     FUNCTION = "function"
+    ATHENA = "athena"
 
 class BaseDataSourceConfig(TypedDict):
     id: str
@@ -43,6 +44,14 @@ class FunctionDataSourceConfig(BaseDataSourceConfig):
     function: str
     parameters: Optional[dict]
 
+class AthenaDataSourceConfig(BaseDataSourceConfig):
+    query: str
+    database: Optional[str]
+    workgroup: Optional[str]
+    region: Optional[str]
+    environment: Optional[str]  # prod, preprod, dev
+    output_location: Optional[str]  # S3 location for query results
+
 # Factory for creating data source configs
 class DataSourceConfigFactory:
     @staticmethod
@@ -52,7 +61,8 @@ class DataSourceConfigFactory:
             DataSourceType.API: APIDataSourceConfig,
             DataSourceType.DATABASE: DatabaseDataSourceConfig,
             DataSourceType.FILE: FileDataSourceConfig,
-            DataSourceType.FUNCTION: FunctionDataSourceConfig
+            DataSourceType.FUNCTION: FunctionDataSourceConfig,
+            DataSourceType.ATHENA: AthenaDataSourceConfig
         }
         
         if source_type not in source_config_map:

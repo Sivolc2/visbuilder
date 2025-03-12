@@ -1,0 +1,98 @@
+name: "Athena Example"
+type: "split"
+description: "Network Data Records analysis dashboard from Athena"
+
+data_sources:
+  - id: "athena_traffic_data"
+    name: "Traffic Data from Athena"
+    type: "athena"
+    description: "Real-time traffic data from AWS Athena"
+    query: "SELECT * FROM traffic_data WHERE date = CURRENT_DATE"
+    database: "traffic_analytics"
+    workgroup: "primary"
+    region: "us-east-1"
+    environment: "dev"
+    output_location: "s3://athena-query-results/traffic-data/"
+    refresh_interval: 3600
+    cache_enabled: true
+
+components:
+  - type: "map"
+    id: "traffic_map"
+    title: "Traffic Map"
+    layers:
+      - id: "traffic_heatmap"
+        name: "Traffic Heatmap"
+        type: "heatmap"
+        data_source: "athena_traffic_data"
+        description: "Heatmap showing traffic congestion"
+        properties:
+          colorRange: [[0, 255, 0], [255, 255, 0], [255, 0, 0]]
+          intensity: 0.6
+          radiusPixels: 60
+          threshold: 0.1
+          opacity: 0.7
+      
+      - id: "traffic_points"
+        name: "Traffic Points"
+        type: "scatterplot"
+        data_source: "athena_traffic_data"
+        description: "Individual traffic data points"
+        properties:
+          getRadius: 5000
+          getFillColor: [255, 140, 0]
+          opacity: 0.8
+  
+  - type: "grid"
+    id: "traffic_analytics"
+    title: "Traffic Analytics"
+    visualizations:
+      - id: "traffic_over_time"
+        title: "Traffic Over Time"
+        type: "line"
+        data_source: "athena_traffic_data"
+        properties:
+          mode: "lines+markers"
+          layout:
+            xaxis: { title: "Time" }
+            yaxis: { title: "Traffic Volume" }
+      
+      - id: "congestion_distribution"
+        title: "Congestion Level Distribution"
+        type: "pie"
+        data_source: "athena_traffic_data"
+        properties:
+          layout:
+            legend: { orientation: "h" }
+
+settings:
+  refresh_rate: 60
+  default_zoom: 12
+  center: [-122.4194, 37.7749]
+  time_window: 3600
+
+layers:
+  - id: "traffic_heatmap"
+    name: "Traffic Heatmap"
+    type: "geospatial-heatmap"
+    data_source: "athena_traffic_data"
+    description: "Heatmap showing traffic congestion"
+    aggregation: "heatmap"
+    color_scale: ["#00ff00", "#ffff00", "#ff0000"]
+    intensity: 0.6
+    radius: 25
+    
+  - id: "traffic_points"
+    name: "Traffic Points"
+    type: "geospatial-points"
+    data_source: "athena_traffic_data"
+    description: "Individual traffic data points"
+    point_size: 5
+    color_by: "congestion_level"
+    color_scale: {
+      "1": "#00ff00",
+      "2": "#88ff00",
+      "3": "#ffff00",
+      "4": "#ff8800",
+      "5": "#ff0000"
+    } 

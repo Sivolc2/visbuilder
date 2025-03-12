@@ -204,9 +204,9 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
 
   useEffect(() => {
     if (viewConfig) {
-      const initialLayers = viewConfig.config.components
+      const initialLayers = viewConfig.config.components && viewConfig.config.components
         .filter(comp => comp.type === 'map')
-        .flatMap(comp => comp.layers.map((layer: LayerConfig) => ({
+        .flatMap(comp => comp.layers ? comp.layers.map((layer: LayerConfig) => ({
           id: layer.id,
           name: layer.name || layer.id,
           type: layer.type,
@@ -214,8 +214,8 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
           visible: true,
           filters: [],
           properties: layer.properties
-        })));
-      setLayers(initialLayers);
+        })) : []);
+      setLayers(initialLayers || []);
     }
   }, [viewConfig]);
 
@@ -343,12 +343,12 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
   }, [viewConfig, layers, layerData]);
 
   const fetchVisualizationData = async () => {
-    if (!viewConfig) return;
+    if (!viewConfig || !viewConfig.config || !viewConfig.config.components) return;
 
     try {
       const visualizations = viewConfig.config.components
         .filter(comp => comp.type === 'grid')
-        .flatMap(comp => comp.visualizations);
+        .flatMap(comp => comp.visualizations || []);
 
       for (const vis of visualizations) {
         try {
@@ -489,9 +489,9 @@ const DynamicView: React.FC<DynamicViewProps> = ({ viewId, mapboxToken }) => {
       {viewConfig && (
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', padding: '1rem' }}>
-            {viewConfig.config.components
+            {viewConfig.config.components && viewConfig.config.components
               .filter(comp => comp.type === 'grid')
-              .flatMap(comp => comp.visualizations)
+              .flatMap(comp => comp.visualizations || [])
               .map(vis => {
                 const data = visualizationData[vis.id];
                 if (!data) return null;
